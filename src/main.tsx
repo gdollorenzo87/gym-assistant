@@ -8,6 +8,9 @@ import './styles.css';
 
 registerSW({ immediate: true });
 
+// Chiede ad Android di non cancellare mai i dati dell'app per liberare spazio
+navigator.storage?.persist?.().catch(() => {});
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <StoreProvider>

@@ -1,28 +1,57 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { AppData, Exercise, Session, SetLog, Workout } from './types';
+import { FutureVersionError, migrate } from './migrations';
+import { DATA_VERSION, type AppData, type Exercise, type Session, type SetLog, type Workout } from './types';
 
 const STORAGE_KEY = 'gym-assistant-data';
+const BACKUP_PREFIX = 'gym-assistant-backup-';
 
-const emptyData = (): AppData => ({ version: 1, workouts: [], sessions: [] });
+export const emptyData = (): AppData => ({ version: DATA_VERSION, workouts: [], sessions: [] });
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
-export function isAppData(value: unknown): value is AppData {
-  const v = value as AppData;
-  return !!v && v.version === 1 && Array.isArray(v.workouts) && Array.isArray(v.sessions);
+/** Copia di sicurezza dei dati grezzi, prima di una migrazione o se non si riescono a leggere */
+function backupRaw(raw: string, label: string) {
+  try {
+    localStorage.setItem(`${BACKUP_PREFIX}${label}-${new Date().toISOString()}`, raw);
+  } catch {
+    // spazio esaurito: la copia principale resta comunque intatta
+  }
 }
 
-function load(): AppData {
+interface LoadResult {
+  data: AppData;
+  /** false = i dati salvati non sono leggibili: non si scrive nulla per non sovrascriverli */
+  writable: boolean;
+  problem?: string;
+  unreadableRaw?: string;
+}
+
+function load(): LoadResult {
+  let raw: string | null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (isAppData(parsed)) return parsed;
-    }
+    raw = localStorage.getItem(STORAGE_KEY);
   } catch {
-    // dati corrotti o storage non disponibile: si riparte vuoti
+    return { data: emptyData(), writable: false, problem: 'La memoria del browser non è accessibile: i dati non verranno salvati.' };
   }
-  return emptyData();
+  if (!raw) return { data: emptyData(), writable: true };
+  try {
+    const parsed = JSON.parse(raw);
+    const data = migrate(parsed);
+    if (parsed.version !== DATA_VERSION) backupRaw(raw, `v${parsed.version}`);
+    return { data, writable: true };
+  } catch (e) {
+    backupRaw(raw, 'illeggibile');
+    const problem =
+      e instanceof FutureVersionError
+        ? "I dati sono stati salvati da una versione più recente dell'app. Ricarica la pagina per aggiornarla: nel frattempo non salvo nulla per non sovrascriverli."
+        : 'Non riesco a leggere i dati salvati. Non salvo nulla per non sovrascriverli: esporta i dati originali dalla pagina Backup.';
+    return { data: emptyData(), writable: false, problem, unreadableRaw: raw };
+  }
+}
+
+/** Legge un backup esportato (anche di versioni precedenti) aggiornandolo al formato attuale */
+export function parseBackup(text: string): AppData {
+  return migrate(JSON.parse(text));
 }
 
 function emptySets(n: number): SetLog[] {
@@ -37,24 +66,31 @@ interface Store {
   startSession: (workoutId: string) => Session;
   updateSet: (sessionId: string, exerciseId: string, index: number, patch: Partial<SetLog>) => void;
   finishSession: (sessionId: string) => void;
+  setSessionTimes: (sessionId: string, startedAt: string, finishedAt?: string) => void;
   deleteSession: (sessionId: string) => void;
   replaceAll: (data: AppData) => void;
   activeSession: Session | undefined;
+  problem?: string;
+  unreadableRaw?: string;
   lastPerformance: (workoutId: string, exerciseId: string, excludeSessionId?: string) => { date: string; sets: SetLog[] } | undefined;
 }
 
 const StoreContext = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(load);
+  const [initial] = useState(load);
+  const [data, setData] = useState<AppData>(initial.data);
+  const [writable, setWritable] = useState(initial.writable);
+  const [problem, setProblem] = useState(initial.problem);
 
   useEffect(() => {
+    if (!writable) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       // storage pieno o non disponibile
     }
-  }, [data]);
+  }, [data, writable]);
 
   const createWorkout = useCallback((name: string) => {
     const workout: Workout = { id: uid(), name, exercises: [] };
@@ -78,7 +114,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         id: uid(),
         workoutId,
         workoutName: workout.name,
-        date: new Date().toISOString(),
+        startedAt: new Date().toISOString(),
         entries: workout.exercises.map((e) => ({ exerciseId: e.id, sets: emptySets(e.sets) })),
         finished: false,
       };
@@ -110,14 +146,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const finishSession = useCallback((sessionId: string) => {
-    setData((d) => ({ ...d, sessions: d.sessions.map((s) => (s.id === sessionId ? { ...s, finished: true } : s)) }));
+    setData((d) => ({
+      ...d,
+      sessions: d.sessions.map((s) =>
+        s.id === sessionId ? { ...s, finished: true, finishedAt: s.finishedAt ?? new Date().toISOString() } : s,
+      ),
+    }));
+  }, []);
+
+  const setSessionTimes = useCallback((sessionId: string, startedAt: string, finishedAt?: string) => {
+    setData((d) => ({ ...d, sessions: d.sessions.map((s) => (s.id === sessionId ? { ...s, startedAt, finishedAt } : s)) }));
   }, []);
 
   const deleteSession = useCallback((sessionId: string) => {
     setData((d) => ({ ...d, sessions: d.sessions.filter((s) => s.id !== sessionId) }));
   }, []);
 
-  const replaceAll = useCallback((next: AppData) => setData(next), []);
+  // Sostituzione esplicita (import backup / azzera): da qui si può tornare a salvare
+  const replaceAll = useCallback((next: AppData) => {
+    setData(next);
+    setWritable(true);
+    setProblem(undefined);
+  }, []);
 
   const activeSession = useMemo(() => data.sessions.find((s) => !s.finished), [data.sessions]);
 
@@ -125,11 +175,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (workoutId: string, exerciseId: string, excludeSessionId?: string) => {
       const candidates = data.sessions
         .filter((s) => s.workoutId === workoutId && s.id !== excludeSessionId)
-        .sort((a, b) => b.date.localeCompare(a.date));
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
       for (const s of candidates) {
         const entry = s.entries.find((e) => e.exerciseId === exerciseId);
         if (entry && entry.sets.some((set) => set.weight != null || set.reps != null)) {
-          return { date: s.date, sets: entry.sets };
+          return { date: s.startedAt, sets: entry.sets };
         }
       }
       return undefined;
@@ -145,10 +195,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     startSession,
     updateSet,
     finishSession,
+    setSessionTimes,
     deleteSession,
     replaceAll,
     activeSession,
     lastPerformance,
+    problem,
+    unreadableRaw: initial.unreadableRaw,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
@@ -173,4 +226,20 @@ export function formatRest(sec: number) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return s ? `${m}'${String(s).padStart(2, '0')}"` : `${m}'`;
+}
+
+export function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+export function formatDuration(ms: number) {
+  const totalMin = Math.max(0, Math.round(ms / 60000));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h ? `${h}h ${String(m).padStart(2, '0')}'` : `${m}'`;
+}
+
+export function sessionDuration(s: Session, now = Date.now()) {
+  const end = s.finishedAt ? Date.parse(s.finishedAt) : s.finished ? undefined : now;
+  return end == null ? undefined : end - Date.parse(s.startedAt);
 }

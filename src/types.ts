@@ -31,13 +31,18 @@ export interface Session {
   workoutId: string;
   /** Nome della scheda al momento della sessione, per lo storico */
   workoutName: string;
-  date: string;
+  /** Inizio sessione (ISO) */
+  startedAt: string;
+  /** Fine sessione (ISO), assente se in corso o se registrata prima della v2 */
+  finishedAt?: string;
   entries: SessionEntry[];
   finished: boolean;
 }
 
+export const DATA_VERSION = 2;
+
 export interface AppData {
-  version: 1;
+  version: typeof DATA_VERSION;
   workouts: Workout[];
   sessions: Session[];
 }

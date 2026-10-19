@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { formatDate, useStore } from '../store';
+import { formatDate, formatDuration, formatTime, sessionDuration, useStore } from '../store';
 
 export default function History() {
   const { data, deleteSession } = useStore();
-  const sessions = [...data.sessions].sort((a, b) => b.date.localeCompare(a.date));
+  const sessions = [...data.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 
   const exerciseName = (workoutId: string, exerciseId: string) =>
     data.workouts.find((w) => w.id === workoutId)?.exercises.find((e) => e.id === exerciseId)?.name ?? 'Esercizio eliminato';
@@ -18,10 +18,12 @@ export default function History() {
             <div>
               <h2>{s.workoutName}</h2>
               <p className="muted">
-                {formatDate(s.date)}
+                {formatDate(s.startedAt)} · {formatTime(s.startedAt)}
+                {s.finishedAt ? `–${formatTime(s.finishedAt)}` : ''}
                 {s.finished ? '' : ' · in corso'}
               </p>
             </div>
+            {s.finishedAt && <span className="duration">{formatDuration(sessionDuration(s) ?? 0)}</span>}
           </summary>
           {s.entries
             .filter((e) => e.sets.some((x) => x.weight != null || x.reps != null))

@@ -1,14 +1,16 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { formatDate, useStore } from '../store';
+import { formatDate, formatDuration, sessionDuration, useStore } from '../store';
+import { useNow } from '../useNow';
 
 export default function Home() {
   const { data, createWorkout, startSession, activeSession } = useStore();
   const navigate = useNavigate();
+  const now = useNow(activeSession ? 30000 : null);
 
   const lastDate = (workoutId: string) =>
     data.sessions
       .filter((s) => s.workoutId === workoutId && s.finished)
-      .map((s) => s.date)
+      .map((s) => s.startedAt)
       .sort()
       .pop();
 
@@ -32,7 +34,7 @@ export default function Home() {
         <Link to={`/session/${activeSession.id}`} className="banner">
           <strong>Allenamento in corso</strong>
           <span>
-            {activeSession.workoutName} · {formatDate(activeSession.date)} — Riprendi →
+            {activeSession.workoutName} · iniziato da {formatDuration(sessionDuration(activeSession, now) ?? 0)} — Riprendi →
           </span>
         </Link>
       )}

@@ -1,12 +1,12 @@
 import { useRef } from 'react';
-import { isAppData, useStore } from '../store';
+import { emptyData, parseBackup, useStore } from '../store';
 
 export default function Settings() {
-  const { data, replaceAll } = useStore();
+  const { data, replaceAll, unreadableRaw } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const exportData = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const exportData = (content = JSON.stringify(data, null, 2)) => {
+    const blob = new Blob([content], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -17,8 +17,7 @@ export default function Settings() {
 
   const importData = async (file: File) => {
     try {
-      const parsed = JSON.parse(await file.text());
-      if (!isAppData(parsed)) throw new Error();
+      const parsed = parseBackup(await file.text());
       if (!confirm('Importando il backup sostituirai tutti i dati attuali. Continuare?')) return;
       replaceAll(parsed);
       alert('Backup importato.');
@@ -29,7 +28,7 @@ export default function Settings() {
 
   const reset = () => {
     if (!confirm('Cancellare TUTTE le schede e lo storico? Esporta prima un backup se vuoi conservarli.')) return;
-    replaceAll({ version: 1, workouts: [], sessions: [] });
+    replaceAll(emptyData());
   };
 
   return (
@@ -42,9 +41,14 @@ export default function Settings() {
         <p>
           {data.workouts.length} schede · {data.sessions.length} allenamenti registrati
         </p>
-        <button className="btn primary block" onClick={exportData}>
+        <button className="btn primary block" onClick={() => exportData()}>
           Esporta backup
         </button>
+        {unreadableRaw && (
+          <button className="btn block" onClick={() => exportData(unreadableRaw)}>
+            Esporta dati originali non leggibili
+          </button>
+        )}
         <button className="btn block" onClick={() => fileRef.current?.click()}>
           Importa backup
         </button>

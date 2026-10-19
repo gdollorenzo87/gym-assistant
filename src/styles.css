@@ -151,3 +151,13 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .tabbar a.active { color: var(--accent); }
 .tabbar a.active span { filter: none; opacity: 1; }
 .set-field input::placeholder { color: var(--muted); opacity: 0.55; font-weight: 400; }
+.alert {
+  background: var(--danger); color: #fff; border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 12px; font-size: 14px; font-weight: 600;
+}
+.timer { margin: 8px 0 0; font-size: 15px; }
+.timer b { color: var(--accent); font-variant-numeric: tabular-nums; font-size: 18px; }
+.duration { color: var(--accent); font-weight: 700; white-space: nowrap; padding-top: 2px; }
+.times { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: end; }
+.times label, .times-total { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.times-total b { color: var(--accent); font-size: 20px; padding: 8px 0; }

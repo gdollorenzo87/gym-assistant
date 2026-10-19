@@ -4,11 +4,14 @@ import WorkoutEditor from './pages/WorkoutEditor';
 import SessionView from './pages/SessionView';
 import History from './pages/History';
 import Settings from './pages/Settings';
+import { useStore } from './store';
 
 export default function App() {
+  const { problem } = useStore();
   return (
     <div className="app">
       <main className="content">
+        {problem && <div className="alert">{problem}</div>}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/workout/:id/edit" element={<WorkoutEditor />} />
