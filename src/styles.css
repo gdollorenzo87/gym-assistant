@@ -1,0 +1,153 @@
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eceef2;
+  --text: #15171c;
+  --muted: #6b7180;
+  --border: #dde0e6;
+  --accent: #ff6b35;
+  --accent-text: #ffffff;
+  --success: #1f9d55;
+  --success-bg: #e3f6ea;
+  --danger: #d64545;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111318;
+    --surface: #1b1e25;
+    --surface-2: #262a33;
+    --text: #f1f2f5;
+    --muted: #9198a6;
+    --border: #2e333d;
+    --success: #3ecf7a;
+    --success-bg: #173324;
+    --danger: #ff6b6b;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app { min-height: 100dvh; }
+.content {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 96px);
+}
+
+h1 { font-size: 28px; margin: 8px 0 12px; }
+h2 { font-size: 18px; margin: 0; }
+.muted { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+.empty { color: var(--muted); text-align: center; padding: 24px 8px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; cursor: pointer; }
+.card-head + * { margin-top: 12px; }
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+.chevron { color: var(--muted); font-size: 12px; padding-top: 4px; }
+
+.banner {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--accent); color: var(--accent-text);
+  text-decoration: none; border-radius: 16px; padding: 14px; margin-bottom: 12px;
+}
+
+.btn {
+  appearance: none; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text);
+  font: inherit; font-weight: 600; border-radius: 12px;
+  padding: 12px 16px; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn.block { width: 100%; margin-top: 8px; }
+.btn.small { padding: 8px 12px; font-size: 14px; border-radius: 10px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); }
+.btn.primary.danger { color: var(--accent-text); }
+.btn:disabled { opacity: 0.4; }
+.btn.video { flex-shrink: 0; background: #ff0033; border-color: #ff0033; color: #fff; }
+
+.back {
+  background: none; border: none; color: var(--accent);
+  font: inherit; font-weight: 600; padding: 4px 0; cursor: pointer;
+}
+.title-input {
+  width: 100%; font-size: 26px; font-weight: 700;
+  background: transparent; border: none; border-bottom: 2px solid var(--border);
+  color: var(--text); padding: 6px 0; margin: 4px 0 16px;
+}
+.title-input:focus { outline: none; border-color: var(--accent); }
+
+.form { display: flex; flex-direction: column; gap: 10px; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+input, textarea {
+  font: inherit; font-size: 16px; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px; width: 100%; min-width: 0;
+}
+input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.actions .primary { margin-left: auto; }
+
+.target { margin: 4px 0 0; font-size: 15px; }
+.target b { color: var(--accent); }
+.notes { margin: 8px 0 0; font-size: 14px; background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+.last { margin: 8px 0 4px; font-size: 13px; color: var(--muted); }
+.last span { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.set-row {
+  display: grid; grid-template-columns: 28px 1fr 1fr 48px;
+  gap: 8px; align-items: center; margin-top: 8px;
+}
+.set-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface-2); color: var(--muted);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;
+}
+.set-field { position: relative; }
+.set-field input { padding-right: 36px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.set-field span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 12px; }
+.check {
+  height: 44px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--muted); font-size: 20px; font-weight: 700; cursor: pointer;
+}
+.set-row.done .check { background: var(--success); border-color: var(--success); color: #fff; }
+.set-row.done .set-num { background: var(--success-bg); color: var(--success); }
+.set-row.done input { background: var(--success-bg); }
+.exercise.complete { border-color: var(--success); }
+
+.progress { height: 6px; background: var(--surface-2); border-radius: 3px; margin: 10px 0 16px; overflow: hidden; }
+.progress div { height: 100%; background: var(--accent); transition: width 0.2s; }
+
+.history-line { display: flex; flex-direction: column; gap: 2px; margin: 10px 0 0; font-size: 14px; }
+.history-line span { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  display: flex; background: var(--surface); border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabbar a {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 0 10px; font-size: 12px; font-weight: 600; color: var(--muted); text-decoration: none;
+}
+.tabbar a span { font-size: 20px; filter: grayscale(1); opacity: 0.7; }
+.tabbar a.active { color: var(--accent); }
+.tabbar a.active span { filter: none; opacity: 1; }
+.set-field input::placeholder { color: var(--muted); opacity: 0.55; font-weight: 400; }
